@@ -1,25 +1,454 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Simple Website</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Flashcard Hiragana</title>
+    <!-- Tailwind CSS CDN untuk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Mengatur font Inter untuk tampilan yang bersih */
+        body {
+            font-family: "Inter", sans-serif;
+        }
+        /* Menyesuaikan ukuran font untuk karakter Hiragana agar terlihat besar dan jelas */
+        .hiragana-char {
+            font-size: 8rem; /* Ukuran font yang sangat besar */
+            line-height: 1; /* Mengatur tinggi baris */
+            min-height: 128px; /* Tinggi minimum untuk memastikan konsistensi */
+            display: flex; /* Menggunakan flexbox untuk penataan */
+            align-items: center; /* Pusatkan secara vertikal */
+            justify-content: center; /* Pusatkan secara horizontal */
+        }
+        /* Gaya untuk pesan umpan balik ketika jawaban salah */
+        .feedback.error .hiragana-row-display {
+            font-size: 1.5rem; /* Ukuran font untuk baris Hiragana */
+            color: #ef4444; /* Warna merah untuk kesalahan */
+            margin-top: 0.5rem; /* Margin di atas */
+        }
+        /* Gaya dasar untuk tombol */
+        button {
+            transition: all 0.2s ease-in-out; /* Transisi halus untuk efek hover */
+        }
+        /* Efek hover untuk tombol */
+        button:hover {
+            transform: translateY(-2px); /* Sedikit mengangkat tombol saat di-hover */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Menambahkan bayangan */
+        }
+        /* Efek aktif (saat diklik) untuk tombol */
+        button:active {
+            transform: translateY(0); /* Kembali ke posisi semula saat diklik */
+            box-shadow: none; /* Menghilangkan bayangan */
+        }
+        /* Gaya untuk elemen select */
+        select {
+            appearance: none; /* Menghapus gaya default browser */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E"); /* Menambahkan ikon panah bawah */
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem; /* Memberi ruang untuk ikon */
+        }
+    </style>
 </head>
-<body>
-    <header>
-        <h1>Welcome to My Website</h1>
-    </header>
+<body class="bg-gradient-to-br from-blue-100 to-purple-200 min-h-screen flex flex-col items-center p-4">
 
-    <section class="content">
-        <p>This is the updated version of my website after changes.</p>
-        <button id="changeColorBtn">Change Background Color</button>
-    </section>
+    <div class="container bg-white p-4 sm:p-8 rounded-2xl shadow-xl max-w-lg w-full text-center border border-gray-200">
+        <h1 class="text-4xl font-extrabold mb-8 text-gray-800">Flashcard Hiragana</h1>
 
-    <footer>
-        <p>&copy; 2025 My Simple Website</p>
-    </footer>
+        <!-- Menu Dropdown untuk memilih baris Hiragana -->
+        <div class="mb-4 flex flex-col sm:flex-row justify-center gap-4">
+            <label for="rowSelect" class="sr-only">Pilih Baris Hiragana:</label>
+            <select id="rowSelect" class="block w-full sm:w-1/2 p-3 text-lg border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-gray-800">
+                <!-- Opsi akan diisi oleh JavaScript -->
+            </select>
 
-    <script src="script.js"></script>
+            <!-- Menu Dropdown untuk memilih arah latihan -->
+            <label for="directionSelect" class="sr-only">Pilih Arah Latihan:</label>
+            <select id="directionSelect" class="block w-full sm:w-1/2 p-3 text-lg border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-gray-800">
+                <option value="hiraganaToRomanji">Hiragana → Romanji</option>
+                <option value="romanjiToHiragana">Romanji → Hiragana</option>
+            </select>
+        </div>
+
+        <div class="flashcard bg-indigo-50 p-6 rounded-xl shadow-inner mb-6 border border-indigo-200">
+            <!-- Area untuk menampilkan karakter Hiragana/Romanji -->
+            <div id="hiraganaChar" class="hiragana-char font-bold text-indigo-700 mb-6 select-none"></div>
+
+            <!-- Input untuk Romanji -->
+            <input type="text" id="romanjiInput" placeholder="Ketik Romanji di sini"
+                   class="w-full p-3 text-lg border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-4 text-center"
+                   autofocus>
+
+            <!-- Tombol untuk memeriksa jawaban -->
+            <button id="checkBtn"
+                    class="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg text-xl font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                Periksa
+            </button>
+
+            <!-- Area untuk umpan balik (benar/salah dan baris Hiragana) -->
+            <div id="feedback" class="feedback mt-4 text-lg font-medium"></div>
+        </div>
+
+        <!-- Tombol navigasi flashcard -->
+        <div class="navigation flex justify-between gap-4">
+            <button id="prevBtn"
+                    class="flex-1 bg-gray-200 text-gray-800 py-3 px-6 rounded-lg text-lg font-semibold hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">
+                Sebelumnya
+            </button>
+            <button id="nextBtn"
+                    class="flex-1 bg-indigo-500 text-white py-3 px-6 rounded-lg text-xl font-semibold hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                Selanjutnya
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Data Hiragana Lengkap dengan properti 'row' dan 'type'
+        const allHiraganaCharacters = [
+            // Basic Hiragana (type: 'basic')
+            { char: 'あ', romanji: 'a', rowDisplay: 'あいうえお (a i u e o)', row: 'a_row', type: 'basic' },
+            { char: 'い', romanji: 'i', rowDisplay: 'あいうえお (a i u e o)', row: 'a_row', type: 'basic' },
+            { char: 'う', romanji: 'u', rowDisplay: 'あいうえお (a i u e o)', row: 'a_row', type: 'basic' },
+            { char: 'え', romanji: 'e', rowDisplay: 'あいうえお (a i u e o)', row: 'a_row', type: 'basic' },
+            { char: 'お', romanji: 'o', rowDisplay: 'あいうえお (a i u e o)', row: 'a_row', type: 'basic' },
+
+            { char: 'か', romanji: 'ka', rowDisplay: 'かきくけこ (ka ki ku ke ko)', row: 'ka_row', type: 'basic' },
+            { char: 'き', romanji: 'ki', rowDisplay: 'かきくけこ (ka ki ku ke ko)', row: 'ka_row', type: 'basic' },
+            { char: 'く', romanji: 'ku', rowDisplay: 'かきくけこ (ka ki ku ke ko)', row: 'ka_row', type: 'basic' },
+            { char: 'け', romanji: 'ke', rowDisplay: 'かきくけこ (ka ki ku ke ko)', row: 'ka_row', type: 'basic' },
+            { char: 'こ', romanji: 'ko', rowDisplay: 'かきくけこ (ka ki ku ke ko)', row: 'ka_row', type: 'basic' },
+
+            { char: 'さ', romanji: 'sa', rowDisplay: 'さしすせそ (sa shi su se so)', row: 'sa_row', type: 'basic' },
+            { char: 'し', romanji: 'shi', rowDisplay: 'さしすせそ (sa shi su se so)', row: 'sa_row', type: 'basic' },
+            { char: 'す', romanji: 'su', rowDisplay: 'さしすせそ (sa shi su se so)', row: 'sa_row', type: 'basic' },
+            { char: 'せ', romanji: 'se', rowDisplay: 'さしすせそ (sa shi su se so)', row: 'sa_row', type: 'basic' },
+            { char: 'そ', romanji: 'so', rowDisplay: 'さしすせそ (sa shi su se so)', row: 'sa_row', type: 'basic' },
+
+            { char: 'た', romanji: 'ta', rowDisplay: 'たちつてと (ta chi tsu te to)', row: 'ta_row', type: 'basic' },
+            { char: 'ち', romanji: 'chi', rowDisplay: 'たちつてと (ta chi tsu te to)', row: 'ta_row', type: 'basic' },
+            { char: 'つ', romanji: 'tsu', rowDisplay: 'たちつてと (ta chi tsu te to)', row: 'ta_row', type: 'basic' },
+            { char: 'て', romanji: 'te', rowDisplay: 'たちつてと (ta chi tsu te to)', row: 'ta_row', type: 'basic' },
+            { char: 'と', romanji: 'to', rowDisplay: 'たちつてと (ta chi tsu te to)', row: 'ta_row', type: 'basic' },
+
+            { char: 'な', romanji: 'na', rowDisplay: 'なにぬねの (na ni nu ne no)', row: 'na_row', type: 'basic' },
+            { char: 'に', romanji: 'ni', rowDisplay: 'なにぬねの (na ni nu ne no)', row: 'na_row', type: 'basic' },
+            { char: 'ぬ', romanji: 'nu', rowDisplay: 'なにぬねの (na ni nu ne no)', row: 'na_row', type: 'basic' },
+            { char: 'ね', romanji: 'ne', rowDisplay: 'なにぬねの (na ni nu ne no)', row: 'na_row', type: 'basic' },
+            { char: 'の', romanji: 'no', rowDisplay: 'なにぬねの (na ni nu ne no)', row: 'na_row', type: 'basic' },
+
+            { char: 'は', romanji: 'ha', rowDisplay: 'はひふへほ (ha hi fu he ho)', row: 'ha_row', type: 'basic' },
+            { char: 'ひ', romanji: 'hi', rowDisplay: 'はひふへほ (ha hi fu he ho)', row: 'ha_row', type: 'basic' },
+            { char: 'ふ', romanji: 'fu', rowDisplay: 'はひふへほ (ha hi fu he ho)', row: 'ha_row', type: 'basic' },
+            { char: 'へ', romanji: 'he', rowDisplay: 'はひふへほ (ha hi fu he ho)', row: 'ha_row', type: 'basic' },
+            { char: 'ほ', romanji: 'ho', rowDisplay: 'はひふへほ (ha hi fu he ho)', row: 'ha_row', type: 'basic' },
+
+            { char: 'ま', romanji: 'ma', rowDisplay: 'まみむめも (ma mi mu me mo)', row: 'ma_row', type: 'basic' },
+            { char: 'み', romanji: 'mi', rowDisplay: 'まみむめも (ma mi mu me mo)', row: 'ma_row', type: 'basic' },
+            { char: 'む', romanji: 'mu', rowDisplay: 'まみむめも (ma mi mu me mo)', row: 'ma_row', type: 'basic' },
+            { char: 'め', romanji: 'me', rowDisplay: 'まみむめも (ma mi mu me mo)', row: 'ma_row', type: 'basic' },
+            { char: 'も', romanji: 'mo', rowDisplay: 'まみむめも (ma mi mu me mo)', row: 'ma_row', type: 'basic' },
+
+            { char: 'や', romanji: 'ya', rowDisplay: 'やゆよ (ya yu yo)', row: 'ya_row', type: 'basic' },
+            { char: 'ゆ', romanji: 'yu', rowDisplay: 'やゆよ (ya yu yo)', row: 'ya_row', type: 'basic' },
+            { char: 'よ', romanji: 'yo', rowDisplay: 'やゆよ (ya yu yo)', row: 'ya_row', type: 'basic' },
+
+            { char: 'ら', romanji: 'ra', rowDisplay: 'らりるれろ (ra ri ru re ro)', row: 'ra_row', type: 'basic' },
+            { char: 'り', romanji: 'ri', rowDisplay: 'らりるれろ (ra ri ru re ro)', row: 'ra_row', type: 'basic' },
+            { char: 'る', romanji: 'ru', rowDisplay: 'らりるれろ (ra ri ru re ro)', row: 'ra_row', type: 'basic' },
+            { char: 'れ', romanji: 're', rowDisplay: 'らりるれろ (ra ri ru re ro)', row: 'ra_row', type: 'basic' },
+            { char: 'ろ', romanji: 'ro', rowDisplay: 'らりるれろ (ra ri ru re ro)', row: 'ra_row', type: 'basic' },
+
+            { char: 'わ', romanji: 'wa', rowDisplay: 'わをん (wa wo n)', row: 'wa_row', type: 'basic' },
+            { char: 'を', romanji: 'wo', rowDisplay: 'わをん (wa wo n)', row: 'wa_row', type: 'basic' },
+            { char: 'ん', romanji: 'n', rowDisplay: 'わをん (wa wo n)', row: 'wa_row', type: 'basic' },
+
+            // Dakuten & Handakuten (type: 'dakuten_handakuten')
+            { char: 'が', romanji: 'ga', rowDisplay: 'がぎぐげご (ga gi gu ge go)', row: 'ga_row', type: 'dakuten_handakuten' },
+            { char: 'ぎ', romanji: 'gi', rowDisplay: 'がぎぐげご (ga gi gu ge go)', row: 'ga_row', type: 'dakuten_handakuten' },
+            { char: 'ぐ', romanji: 'gu', rowDisplay: 'がぎぐげご (ga gi gu ge go)', row: 'ga_row', type: 'dakuten_handakuten' },
+            { char: 'げ', romanji: 'ge', rowDisplay: 'がぎぐげご (ga gi gu ge go)', row: 'ga_row', type: 'dakuten_handakuten' },
+            { char: 'ご', romanji: 'go', rowDisplay: 'がぎぐげご (ga gi gu ge go)', row: 'ga_row', type: 'dakuten_handakuten' },
+
+            { char: 'ざ', romanji: 'za', rowDisplay: 'ざじずぜぞ (za ji zu ze zo)', row: 'za_row', type: 'dakuten_handakuten' },
+            { char: 'じ', romanji: 'ji', rowDisplay: 'ざじずぜぞ (za ji zu ze zo)', row: 'za_row', type: 'dakuten_handakuten' },
+            { char: 'ず', romanji: 'zu', rowDisplay: 'ざじずぜぞ (za ji zu ze zo)', row: 'za_row', type: 'dakuten_handakuten' },
+            { char: 'ぜ', romanji: 'ze', rowDisplay: 'ざじずぜぞ (za ji zu ze zo)', row: 'za_row', type: 'dakuten_handakuten' },
+            { char: 'ぞ', romanji: 'zo', rowDisplay: 'ざじずぜぞ (za ji zu ze zo)', row: 'za_row', type: 'dakuten_handakuten' },
+
+            { char: 'だ', romanji: 'da', rowDisplay: 'だぢづでど (da ji zu de do)', row: 'da_row', type: 'dakuten_handakuten' },
+            { char: 'ぢ', romanji: 'ji', rowDisplay: 'だぢづでど (da ji zu de do)', row: 'da_row', type: 'dakuten_handakuten' },
+            { char: 'づ', romanji: 'zu', rowDisplay: 'だぢづでど (da ji zu de do)', row: 'da_row', type: 'dakuten_handakuten' },
+            { char: 'で', romanji: 'de', rowDisplay: 'だぢづでど (da ji zu de do)', row: 'da_row', type: 'dakuten_handakuten' },
+            { char: 'ど', romanji: 'do', rowDisplay: 'だぢづでど (da ji zu de do)', row: 'da_row', type: 'dakuten_handakuten' },
+
+            { char: 'ば', romanji: 'ba', rowDisplay: 'ばびぶべぼ (ba bi bu be bo)', row: 'ba_row', type: 'dakuten_handakuten' },
+            { char: 'び', romanji: 'bi', rowDisplay: 'ばびぶべぼ (ba bi bu be bo)', row: 'ba_row', type: 'dakuten_handakuten' },
+            { char: 'ぶ', romanji: 'bu', rowDisplay: 'ばびぶべぼ (ba bi bu be bo)', row: 'ba_row', type: 'dakuten_handakuten' },
+            { char: 'べ', romanji: 'be', rowDisplay: 'ばびぶべぼ (ba bi bu be bo)', row: 'ba_row', type: 'dakuten_handakuten' },
+            { char: 'ぼ', romanji: 'bo', rowDisplay: 'ばびぶべぼ (ba bi bu be bo)', row: 'ba_row', type: 'dakuten_handakuten' },
+
+            { char: 'ぱ', romanji: 'pa', rowDisplay: 'ぱぴぷぺぽ (pa pi pu pe po)', row: 'pa_row', type: 'dakuten_handakuten' },
+            { char: 'ぴ', romanji: 'pi', rowDisplay: 'ぱぴぷぺぽ (pa pi pu pe po)', row: 'pa_row', type: 'dakuten_handakuten' },
+            { char: 'ぷ', romanji: 'pu', rowDisplay: 'ぱぴぷぺぽ (pa pi pu pe po)', row: 'pa_row', type: 'dakuten_handakuten' },
+            { char: 'ぺ', romanji: 'pe', rowDisplay: 'ぱぴぷぺぽ (pa pi pu pe po)', row: 'pa_row', type: 'dakuten_handakuten' },
+            { char: 'ぽ', romanji: 'po', rowDisplay: 'ぱぴぷぺぽ (pa pi pu pe po)', row: 'pa_row', type: 'dakuten_handakuten' },
+
+            // Yoon (type: 'yoon')
+            { char: 'きゃ', romanji: 'kya', rowDisplay: 'きゃきゅきょ (kya kyu kyo)', row: 'kya_row', type: 'yoon' },
+            { char: 'きゅ', romanji: 'kyu', rowDisplay: 'きゃきゅきょ (kya kyu kyo)', row: 'kya_row', type: 'yoon' },
+            { char: 'きょ', romanji: 'kyo', rowDisplay: 'きゃきゅきょ (kya kyu kyo)', row: 'kya_row', type: 'yoon' },
+
+            { char: 'しゃ', romanji: 'sha', rowDisplay: 'しゃしゅしょ (sha shu sho)', row: 'sha_row', type: 'yoon' },
+            { char: 'しゅ', romanji: 'shu', rowDisplay: 'しゃしゅしょ (sha shu sho)', row: 'sha_row', type: 'yoon' },
+            { char: 'しょ', romanji: 'sho', rowDisplay: 'しゃしゅしょ (sha shu sho)', row: 'sha_row', type: 'yoon' },
+
+            { char: 'ちゃ', romanji: 'cha', rowDisplay: 'ちゃちゅちょ (cha chu cho)', row: 'cha_row', type: 'yoon' },
+            { char: 'ちゅ', romanji: 'chu', rowDisplay: 'ちゃちゅちょ (cha chu cho)', row: 'cha_row', type: 'yoon' },
+            { char: 'ちょ', romanji: 'cho', rowDisplay: 'ちゃちゅちょ (cha chu cho)', row: 'cha_row', type: 'yoon' },
+
+            { char: 'にゃ', romanji: 'nya', rowDisplay: 'にゃにゅにょ (nya nyu nyo)', row: 'nya_row', type: 'yoon' },
+            { char: 'にゅ', romanji: 'nyu', rowDisplay: 'にゃにゅにょ (nya nyu nyo)', row: 'nya_row', type: 'yoon' },
+            { char: 'にょ', romanji: 'nyo', rowDisplay: 'にゃにゅにょ (nya nyu nyo)', row: 'nya_row', type: 'yoon' },
+
+            { char: 'ひゃ', romanji: 'hya', rowDisplay: 'ひゃひゅひょ (hya hyu hyo)', row: 'hya_row', type: 'yoon' },
+            { char: 'ひゅ', romanji: 'hyu', rowDisplay: 'ひゃひゅひょ (hya hyu hyo)', row: 'hya_row', type: 'yoon' },
+            { char: 'ひょ', romanji: 'hyo', rowDisplay: 'ひゃひゅひょ (hya hyu hyo)', row: 'hya_row', type: 'yoon' },
+
+            { char: 'みゃ', romanji: 'mya', rowDisplay: 'みゃみゅみょ (mya myu myo)', row: 'mya_row', type: 'yoon' },
+            { char: 'みゅ', romanji: 'myu', rowDisplay: 'みゃみゅみょ (mya myu myo)', row: 'mya_row', type: 'yoon' },
+            { char: 'みょ', romanji: 'myo', rowDisplay: 'みゃみゅみょ (mya myu myo)', row: 'mya_row', type: 'yoon' },
+
+            { char: 'りゃ', romanji: 'rya', rowDisplay: 'りゃりゅりょ (rya ryu ryo)', row: 'rya_row', type: 'yoon' },
+            { char: 'りゅ', romanji: 'ryu', rowDisplay: 'りゃりゅりょ (rya ryu ryo)', row: 'rya_row', type: 'yoon' },
+            { char: 'りょ', romanji: 'ryo', rowDisplay: 'りゃりゅりょ (rya ryu ryo)', row: 'rya_row', type: 'yoon' },
+
+            { char: 'ぎゃ', romanji: 'gya', rowDisplay: 'ぎゃぎゅぎょ (gya gyu gyo)', row: 'gya_row', type: 'yoon' },
+            { char: 'ぎゅ', romanji: 'gyu', rowDisplay: 'ぎゃぎゅぎょ (gya gyu gyo)', row: 'gya_row', type: 'yoon' },
+            { char: 'ぎょ', romanji: 'gyo', rowDisplay: 'ぎゃぎゅぎょ (gya gyu gyo)', row: 'gya_row', type: 'yoon' },
+
+            { char: 'じゃ', romanji: 'ja', rowDisplay: 'じゃじゅじょ (ja ju jo)', row: 'ja_row', type: 'yoon' },
+            { char: 'じゅ', romanji: 'ju', rowDisplay: 'じゃじゅじょ (ja ju jo)', row: 'ja_row', type: 'yoon' },
+            { char: 'じょ', romanji: 'jo', rowDisplay: 'じゃじゅじょ (ja ju jo)', row: 'ja_row', type: 'yoon' },
+
+            { char: 'ぢゃ', romanji: 'ja', rowDisplay: 'ぢゃぢゅぢょ (ja ju jo)', row: 'dya_row', type: 'yoon' },
+            { char: 'ぢゅ', romanji: 'ju', rowDisplay: 'ぢゃぢゅぢょ (ja ju jo)', row: 'dya_row', type: 'yoon' },
+            { char: 'ぢょ', romanji: 'jo', rowDisplay: 'ぢゃぢゅぢょ (ja ju jo)', row: 'dya_row', type: 'yoon' },
+
+            { char: 'びゃ', romanji: 'bya', rowDisplay: 'びゃびゅびょ (bya byu byo)', row: 'bya_row', type: 'yoon' },
+            { char: 'びゅ', romanji: 'byu', rowDisplay: 'びゃびゅびょ (bya byu byo)', row: 'bya_row', type: 'yoon' },
+            { char: 'びょ', romanji: 'byo', rowDisplay: 'びゃびゅびょ (bya byu byo)', row: 'bya_row', type: 'yoon' },
+
+            { char: 'ぴゃ', romanji: 'pya', rowDisplay: 'ぴゃぴゅぴょ (pya pyu pyo)', row: 'pya_row', type: 'yoon' },
+            { char: 'ぴゅ', romanji: 'pyu', rowDisplay: 'ぴゃぴゅぴょ (pya pyu pyo)', row: 'pya_row', type: 'yoon' },
+            { char: 'ぴょ', romanji: 'pyo', rowDisplay: 'ぴゃぴゅぴょ (pya pyu pyo)', row: 'pya_row', type: 'yoon' }
+        ];
+
+        // Opsi untuk dropdown pemilihan baris/kategori
+        const rowOptions = [
+            { value: 'all', text: 'Semua Hiragana' },
+            { value: 'basic', text: 'Hiragana Dasar' },
+            { value: 'additional', text: 'Hiragana Tambahan' },
+            { value: 'a_row', text: 'Baris A (あいうえお)' },
+            { value: 'ka_row', text: 'Baris Ka (かきくけこ)' },
+            { value: 'sa_row', text: 'Baris Sa (さしすせそ)' },
+            { value: 'ta_row', text: 'Baris Ta (たちつてと)' },
+            { value: 'na_row', text: 'Baris Na (なにぬねの)' },
+            { value: 'ha_row', text: 'Baris Ha (はひふへほ)' },
+            { value: 'ma_row', text: 'Baris Ma (まみむめも)' },
+            { value: 'ya_row', text: 'Baris Ya (やゆよ)' },
+            { value: 'ra_row', text: 'Baris Ra (らりるれろ)' },
+            { value: 'wa_row', text: 'Baris Wa (わをん)' },
+            { value: 'ga_row', text: 'Baris Ga (がぎぐげご)' },
+            { value: 'za_row', text: 'Baris Za (ざじずぜぞ)' },
+            { value: 'da_row', text: 'Baris Da (だぢづでど)' },
+            { value: 'ba_row', text: 'Baris Ba (ばびぶべぼ)' },
+            { value: 'pa_row', text: 'Baris Pa (ぱぴぷぺぽ)' },
+            { value: 'kya_row', text: 'Baris Kya (きゃきゅきょ)' },
+            { value: 'sha_row', text: 'Baris Sha (しゃしゅしょ)' },
+            { value: 'cha_row', text: 'Baris Cha (ちゃちゅちょ)' },
+            { value: 'nya_row', text: 'Baris Nya (にゃにゅにょ)' },
+            { value: 'hya_row', text: 'Baris Hya (ひゃひゅひょ)' },
+            { value: 'mya_row', text: 'Baris Mya (みゃみゅみょ)' },
+            { value: 'rya_row', text: 'Baris Rya (りゃりゅりょ)' },
+            { value: 'gya_row', text: 'Baris Gya (ぎゃぎゅぎょ)' },
+            { value: 'ja_row', text: 'Baris Ja (じゃじゅじょ)' },
+            { value: 'dya_row', text: 'Baris Dya (ぢゃぢゅぢょ)' },
+            { value: 'bya_row', text: 'Baris Bya (びゃびゅびょ)' },
+            { value: 'pya_row', text: 'Baris Pya (ぴゃぴゅぴょ)' }
+        ];
+
+        let currentIndex = 0; // Indeks kartu yang sedang ditampilkan
+        let activeHiraganaSet = []; // Set Hiragana yang sedang aktif (akan diisi berdasarkan pilihan dropdown)
+        let shuffledHiraganaData = []; // Array untuk menyimpan data Hiragana yang sudah diacak
+        let questionDirection = 'hiraganaToRomanji'; // Arah pertanyaan: 'hiraganaToRomanji' atau 'romanjiToHiragana'
+
+        // Mendapatkan elemen-elemen DOM
+        const hiraganaCharDiv = document.getElementById('hiraganaChar');
+        const romanjiInput = document.getElementById('romanjiInput');
+        const checkBtn = document.getElementById('checkBtn');
+        const feedbackDiv = document.getElementById('feedback');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const rowSelect = document.getElementById('rowSelect'); // Dropdown untuk baris
+        const directionSelect = document.getElementById('directionSelect'); // Dropdown untuk arah
+
+        /**
+         * Fungsi untuk mengacak array (Fisher-Yates shuffle).
+         * @param {Array} array - Array yang akan diacak.
+         * @returns {Array} - Array yang sudah diacak.
+         */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // Tukar elemen
+            }
+            return array;
+        }
+
+        /**
+         * Mengisi dropdown pilihan baris Hiragana.
+         */
+        function populateRowSelect() {
+            rowOptions.forEach(option => {
+                const optElement = document.createElement('option');
+                optElement.value = option.value;
+                optElement.textContent = option.text;
+                rowSelect.appendChild(optElement);
+            });
+            // Set default selection
+            rowSelect.value = 'basic'; // Default ke Hiragana Dasar
+        }
+
+        /**
+         * Menginisialisasi atau mengatur ulang set flashcard berdasarkan pilihan dropdown.
+         */
+        function initializeFlashcards() {
+            const selectedRowOption = rowSelect.value;
+            let filteredData = [];
+
+            if (selectedRowOption === 'all') {
+                filteredData = [...allHiraganaCharacters];
+            } else if (selectedRowOption === 'basic') {
+                filteredData = allHiraganaCharacters.filter(item => item.type === 'basic');
+            } else if (selectedRowOption === 'additional') {
+                filteredData = allHiraganaCharacters.filter(item => item.type === 'dakuten_handakuten' || item.type === 'yoon');
+            } else {
+                // Filter by specific row
+                filteredData = allHiraganaCharacters.filter(item => item.row === selectedRowOption);
+            }
+
+            activeHiraganaSet = filteredData;
+            shuffledHiraganaData = shuffleArray([...activeHiraganaSet]);
+            currentIndex = 0;
+            displayCard();
+        }
+
+        /**
+         * Menampilkan kartu Hiragana/Romanji saat ini dari array yang sudah diacak.
+         */
+        function displayCard() {
+            if (shuffledHiraganaData.length === 0) {
+                hiraganaCharDiv.textContent = 'Tidak ada kartu untuk ditampilkan.';
+                romanjiInput.value = '';
+                feedbackDiv.innerHTML = '';
+                return;
+            }
+
+            // Tampilkan karakter atau romanji berdasarkan arah pertanyaan
+            if (questionDirection === 'hiraganaToRomanji') {
+                hiraganaCharDiv.textContent = shuffledHiraganaData[currentIndex].char;
+            } else { // romanjiToHiragana
+                hiraganaCharDiv.textContent = shuffledHiraganaData[currentIndex].romanji;
+            }
+
+            // Mengosongkan input Romanji
+            romanjiInput.value = '';
+            // Mengosongkan area umpan balik
+            feedbackDiv.innerHTML = '';
+            // Menghapus kelas error dari feedback div jika ada
+            feedbackDiv.classList.remove('text-green-600', 'text-red-600', 'error');
+            // Fokus kembali ke input field agar siap untuk mengetik
+            romanjiInput.focus();
+        }
+
+        /**
+         * Memeriksa jawaban Romanji yang dimasukkan pengguna.
+         */
+        function checkAnswer() {
+            if (shuffledHiraganaData.length === 0) return;
+
+            const userAnswer = romanjiInput.value.trim().toLowerCase(); // Ambil input, hapus spasi, ubah ke huruf kecil
+            const correctRomanji = shuffledHiraganaData[currentIndex].romanji.toLowerCase(); // Jawaban Romanji yang benar
+            const correctHiragana = shuffledHiraganaData[currentIndex].char; // Karakter Hiragana yang benar
+            const currentRowDisplay = shuffledHiraganaData[currentIndex].rowDisplay; // Baris Hiragana untuk umpan balik
+
+            // Hapus kelas umpan balik sebelumnya
+            feedbackDiv.classList.remove('text-green-600', 'text-red-600', 'error');
+
+            if (userAnswer === correctRomanji) {
+                // Jika jawaban benar
+                feedbackDiv.textContent = 'Benar!';
+                feedbackDiv.classList.add('text-green-600');
+            } else {
+                // Jika jawaban salah
+                let feedbackMessage;
+                if (questionDirection === 'romanjiToHiragana') {
+                    // Jika mode Romanji -> Hiragana, feedback harus menunjukkan Hiragana yang benar juga
+                    feedbackMessage = `Salah! Jawaban yang benar adalah "${correctRomanji}" (${correctHiragana}).`;
+                } else {
+                    // Mode Hiragana -> Romanji
+                    feedbackMessage = `Salah! Jawaban yang benar adalah "${correctRomanji}".`;
+                }
+                feedbackDiv.innerHTML = `${feedbackMessage}<br><span class="hiragana-row-display">${currentRowDisplay}</span>`;
+                feedbackDiv.classList.add('text-red-600', 'error');
+            }
+        }
+
+        /**
+         * Pindah ke kartu Hiragana berikutnya.
+         */
+        function nextCard() {
+            if (shuffledHiraganaData.length === 0) return;
+            currentIndex = (currentIndex + 1) % shuffledHiraganaData.length; // Pindah ke indeks berikutnya, kembali ke 0 jika sudah terakhir
+            displayCard(); // Tampilkan kartu baru
+        }
+
+        /**
+         * Pindah ke kartu Hiragana sebelumnya.
+         */
+        function prevCard() {
+            if (shuffledHiraganaData.length === 0) return;
+            currentIndex = (currentIndex - 1 + shuffledHiraganaData.length) % shuffledHiraganaData.length; // Pindah ke indeks sebelumnya, kembali ke akhir jika sudah pertama
+            displayCard(); // Tampilkan kartu baru
+        }
+
+        // Event Listeners
+        checkBtn.addEventListener('click', checkAnswer);
+        nextBtn.addEventListener('click', nextCard);
+        prevBtn.addEventListener('click', prevCard);
+
+        romanjiInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+
+        // Event listener untuk perubahan pilihan baris
+        rowSelect.addEventListener('change', initializeFlashcards);
+
+        // Event listener untuk perubahan arah latihan
+        directionSelect.addEventListener('change', (event) => {
+            questionDirection = event.target.value;
+            initializeFlashcards(); // Inisialisasi ulang untuk menerapkan arah baru
+        });
+
+        // Inisialisasi flashcard saat halaman dimuat
+        window.onload = function() {
+            populateRowSelect(); // Isi dropdown baris
+            initializeFlashcards(); // Inisialisasi flashcard dengan pilihan default
+            directionSelect.value = 'hiraganaToRomanji'; // Pastikan arah default terpilih di dropdown
+        };
+    </script>
 </body>
 </html>
